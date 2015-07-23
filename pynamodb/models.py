@@ -117,7 +117,7 @@ class BatchWrite(ModelContextManager):
         self.model.add_throttle_record(data.get(CONSUMED_CAPACITY, None))
         if data is None:
             return
-        unprocessed_keys = data.get(UNPROCESSED_KEYS, {}).get(self.model.Meta.table_name)
+        unprocessed_keys = data.get(UNPROCESSED_KEYS, {}).get(self.model.Meta.table_name())
         while unprocessed_keys:
             put_items = []
             delete_items = []
@@ -133,7 +133,7 @@ class BatchWrite(ModelContextManager):
                 delete_items=delete_items
             )
             self.model.add_throttle_record(data.get(CONSUMED_CAPACITY))
-            unprocessed_keys = data.get(UNPROCESSED_KEYS, {}).get(self.model.Meta.table_name)
+            unprocessed_keys = data.get(UNPROCESSED_KEYS, {}).get(self.model.Meta.table_name())
 
 
 class DefaultMeta(object):
@@ -303,12 +303,12 @@ class Model(with_metaclass(MetaModel)):
         return BatchWrite(cls, auto_commit=auto_commit)
 
     def __repr__(self):
-        if self.Meta.table_name:
+        if self.Meta.table_name():
             serialized = self._serialize(null_check=False)
             if self._get_meta_data().range_keyname:
-                msg = "{0}<{1}, {2}>".format(self.Meta.table_name, serialized.get(HASH), serialized.get(RANGE))
+                msg = "{0}<{1}, {2}>".format(self.Meta.table_name(), serialized.get(HASH), serialized.get(RANGE))
             else:
-                msg = "{0}<{1}>".format(self.Meta.table_name, serialized.get(HASH))
+                msg = "{0}<{1}>".format(self.Meta.table_name(), serialized.get(HASH))
             return six.u(msg)
 
     def delete(self, conditional_operator=None, **expected_values):
@@ -1047,8 +1047,8 @@ class Model(with_metaclass(MetaModel)):
             keys_to_get
         )
         cls._throttle.add_record(data.get(CONSUMED_CAPACITY))
-        item_data = data.get(RESPONSES).get(cls.Meta.table_name)
-        unprocessed_items = data.get(UNPROCESSED_KEYS).get(cls.Meta.table_name, {}).get(KEYS, None)
+        item_data = data.get(RESPONSES).get(cls.Meta.table_name())
+        unprocessed_items = data.get(UNPROCESSED_KEYS).get(cls.Meta.table_name(), {}).get(KEYS, None)
         return item_data, unprocessed_items
 
     def _set_defaults(self):
@@ -1085,7 +1085,7 @@ class Model(with_metaclass(MetaModel)):
         """
         if records:
             for record in records:
-                if record.get(TABLE_NAME) == cls.Meta.table_name:
+                if record.get(TABLE_NAME) == cls.Meta.table_name():
                     cls._throttle.add_record(record.get(CAPACITY_UNITS))
                     break
 
@@ -1110,13 +1110,13 @@ class Model(with_metaclass(MetaModel)):
         """
         Returns a (cached) connection
         """
-        if not hasattr(cls, "Meta") or cls.Meta.table_name is None:
+        if not hasattr(cls, "Meta") or cls.Meta.table_name() is None:
             raise AttributeError(
                 """As of v1.0 PynamoDB Models require a `Meta` class.
                 See http://pynamodb.readthedocs.org/en/latest/release_notes.html"""
             )
         if cls._connection is None:
-            cls._connection = TableConnection(cls.Meta.table_name, region=cls.Meta.region, host=cls.Meta.host)
+            cls._connection = TableConnection(cls.Meta.table_name(), region=cls.Meta.region, host=cls.Meta.host)
         return cls._connection
 
     def _deserialize(self, attrs):
