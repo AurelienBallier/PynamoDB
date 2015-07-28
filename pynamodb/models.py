@@ -225,7 +225,7 @@ class Model(with_metaclass(MetaModel)):
     _meta_table = None
     _attributes = None
     _indexes = None
-    _connection = None
+    _connections = {}
     _index_classes = None
     _throttle = NoThrottle()
     DoesNotExist = DoesNotExist
@@ -1108,14 +1108,18 @@ class Model(with_metaclass(MetaModel)):
     @classmethod
     def _get_connection(cls):
         """
-        Returns a (non cached) connection
+        Returns a cached connection
         """
         if not hasattr(cls, "Meta") or cls.Meta.table_name() is None:
             raise AttributeError(
                 """As of v1.0 PynamoDB Models require a `Meta` class.
                 See http://pynamodb.readthedocs.org/en/latest/release_notes.html"""
             )
-        return TableConnection(cls.Meta.table_name(), region=cls.Meta.region, host=cls.Meta.host)
+
+        if(cls.Meta.table_name() not in self._connections.keys()):
+          self._connections[cls.Meta.table_name()] = TableConnection(cls.Meta.table_name(), region=cls.Meta.region, host=cls.Meta.host)
+
+        return self._connections[cls.Meta.table_name()]
 
     def _deserialize(self, attrs):
         """
