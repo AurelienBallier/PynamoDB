@@ -1116,10 +1116,10 @@ class Model(with_metaclass(MetaModel)):
                 See http://pynamodb.readthedocs.org/en/latest/release_notes.html"""
             )
 
-        if(cls.Meta.table_name() not in self._connections.keys()):
-          self._connections[cls.Meta.table_name()] = TableConnection(cls.Meta.table_name(), region=cls.Meta.region, host=cls.Meta.host)
+        if(cls.Meta.table_name() not in cls._connections.keys()):
+          cls._connections[cls.Meta.table_name()] = TableConnection(cls.Meta.table_name(), region=cls.Meta.region, host=cls.Meta.host)
 
-        return self._connections[cls.Meta.table_name()]
+        return cls._connections[cls.Meta.table_name()]
 
     def _deserialize(self, attrs):
         """
